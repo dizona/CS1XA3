@@ -7,12 +7,12 @@ for userInput in "$@"
 do
   	if [ "$userInput" = "todo" ]; then
 		if [ -f ./Project01/todo.log ]; then
-			rm ./Project/01/todo.log
+			rm ./Project01/todo.log
 		else
 			touch ./Project01/todo.log
 		fi
 		
-		grep -r --exclude={project_analyze.sh,todo.log} "#TODO" ./ >> ./Project01/todo.log
+		grep -r --exclude={project_analyze.sh,todo.log} --exclude-dir=.git "#TODO" ./ >> ./Project01/todo.log
 
 	fi
 done
