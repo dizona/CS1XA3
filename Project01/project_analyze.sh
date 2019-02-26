@@ -63,7 +63,7 @@ do
 		if [ "$fileChoice" = "1" ]; then
 			read -p "Enter the exact path of the file you wish to remove. You can copy and paste the path of the file from above: " deleteFile
 
-			#Deletes the file
+			#Deletes the file specified by the user
 			rm "$deleteFile"
 			echo "The file has been removed"
 			echo ""
@@ -95,6 +95,9 @@ do
 		else
 			echo "The FileSize function will close now."
 		fi
+	#If userINput does not match any of the pre-set function names
+	else
+		echo "The function $userInput did not match any of the listed functions. Please run the the file again with the proper input."
 	
 	fi
 
