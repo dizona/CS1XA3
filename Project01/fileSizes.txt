@@ -1,0 +1,24 @@
+./set_permissions.sh
+The size of ./set_permissions.sh = 152 bytes
+
+./public_html/assets/sample_img.jpg
+The size of ./public_html/assets/sample_img.jpg = 144727 bytes
+
+./public_html/index.html
+The size of ./public_html/index.html = 672 bytes
+
+./README.md
+The size of ./README.md = 8 bytes
+
+./Project01/test_file.txt
+The size of ./Project01/test_file.txt = 55 bytes
+
+./Project01/todo.log
+The size of ./Project01/todo.log = 113 bytes
+
+./Project01/randomFilesToTestSize/randomeFile1.sh
+The size of ./Project01/randomFilesToTestSize/randomeFile1.sh = 20 bytes
+
+./Project01/randomFilesToTestSize/randomFile2.sh
+The size of ./Project01/randomFilesToTestSize/randomFile2.sh = 29 bytes
+
