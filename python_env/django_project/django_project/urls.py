@@ -15,9 +15,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
-root="e/dizona/"
+from django.http import HttpResponse
 
 urlpatterns = [
-    path(root , include("testreq.urls")),
+    path('e/dizona/', include('lab7app.urls')),
 ]
