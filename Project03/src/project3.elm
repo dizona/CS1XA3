@@ -40,7 +40,7 @@ main =
 
 
 type alias Model =
-    { name : String, password : String, error : String }
+    { name : String, password : String, error : String, newUser : String, newPass : String, confirmPass : String, doesNotMatch : String}
 
 
 type Msg
@@ -48,6 +48,11 @@ type Msg
     | NewPassword String -- Password text field changed
     | GotLoginResponse (Result Http.Error String) -- Http Post Response Received
     | LoginButton -- Login Button Pressed
+    | RegisterName String -- Regster username
+    | RegisterPassword String --Register password
+    | RegisterPasswordConf String --Register password
+    | RegisterButton -- Register button pressed
+
 
 
 init : () -> ( Model, Cmd Msg )
@@ -55,6 +60,10 @@ init _ =
     ( { name = ""
       , password = ""
       , error = ""
+      , newUser = ""
+      , newPass = ""
+      , confirmPass = ""
+      , doesNotMatch = ""
       }
     , Cmd.none
     )
@@ -70,13 +79,48 @@ init _ =
 view : Model -> Html Msg
 view model =
     div []
-        [ div []
-            [ viewInput "text" "Name" model.name NewName
-            , viewInput "password" "Password" model.password NewPassword
-            ]
-        , div []
-            [ button [ Events.onClick LoginButton ] [ text "Login" ]
-            , text model.error
+        [ node "link" [ href "css/style.css", rel "stylesheet" ]
+            []
+        , div [ class "login-wrap" ]
+            [ div [ class "login-html" ]
+                [ input [ attribute "checked" "", class "sign-in", id "tab-1", name "tab", type_ "radio" ]
+                    []
+                , label [ class "tab", for "tab-1" ]
+                    [ text "Sign In" ]
+                , input [ class "sign-up", id "tab-2", name "tab", type_ "radio" ]
+                    []
+                , label [ class "tab", for "tab-2" ]
+                    [ text "Sign Up" ]
+                , div [ class "login-form" ]
+                    [ div [ class "sign-in-htm" ]
+                        [ div [ class "group" ]
+                            [ viewInput "text" "Name" model.name NewName
+                            , viewInput "password" "Password" model.password NewPassword
+                            ]
+                        , div [ class "group" ]
+                            [ button [ Events.onClick LoginButton ] [ text "Login" ]
+                            , text model.error
+                            ]
+                        , div [ class "hr" ]
+                            []
+                        ]
+                    , div [ class "sign-up-htm" ]
+                        [ div [ class "group" ]
+                            [ viewInput "text" "New User Name" model.newUser RegisterName
+                            ]
+                        , div [ class "group" ]
+                            [ viewInput "password" "Password" model.newPass RegisterPassword
+                            ]
+                        , div [ class "group" ]
+                            [ viewInput "password" "Confirm Password" model.confirmPass RegisterPasswordConf
+                            ]
+                        , div [ class "group" ]
+                            [ button [ Events.onClick RegisterButton ] [ text "Register and Login" ]
+                            , text model.doesNotMatch
+                            ]
+                        ]
+                    ]
+                ]
             ]
         ]
 
@@ -115,6 +159,14 @@ loginPost model =
         , expect = Http.expectString GotLoginResponse
         }
 
+registerPost : Model -> Cmd Msg
+registerPost model =
+    Http.post
+        { url = rootUrl ++ "loginapp/adduser/"
+        , body = Http.jsonBody <| passwordEncoder model
+        , expect = Http.expectString GotLoginResponse
+        }
+
 
 
 {- -------------------------------------------------------------------------------------------
@@ -138,13 +190,30 @@ update msg model =
         LoginButton ->
             ( model, loginPost model )
 
+        RegisterName newUser ->
+            ( { model | newUser = newUser }, Cmd.none )
+
+        RegisterPassword newPass ->
+            ( { model | newPass = newPass }, Cmd.none )
+
+        RegisterPasswordConf confirmPass ->
+            ( { model | confirmPass = confirmPass }, Cmd.none )
+
+        RegisterButton ->
+            if model.newPass /= model.confirmPass then
+              ( { model | doesNotMatch = "The passwords entered do not match" }, Cmd.none )
+            else if model.newUser == "" || model.newPass == "" || model.confirmPass == "" then --Remove when add user works
+              ( { model | doesNotMatch = "One or more fields are blank" }, Cmd.none )
+            else
+              ( {model | name = model.newUser, password = model.newPass}, registerPost model)
+
         GotLoginResponse result ->
             case result of
                 Ok "LoginFailed" ->
                     ( { model | error = "failed to login" }, Cmd.none )
 
                 Ok _ ->
-                    ( model, load ( "https://google.ca") )
+                    ( model, load ("https://google.ca") )
 
                 Err error ->
                     ( handleError model error, Cmd.none )
