@@ -106,10 +106,10 @@ view model =
                         ]
                     , div [ class "sign-up-htm" ]
                         [ div [ class "group" ]
-                            [ viewInput "text" "New User Name" model.newUser RegisterName
+                            [ viewInput "text" "New User Name" model.name RegisterName
                             ]
                         , div [ class "group" ]
-                            [ viewInput "password" "Password" model.newPass RegisterPassword
+                            [ viewInput "password" "Password" model.password RegisterPassword
                             ]
                         , div [ class "group" ]
                             [ viewInput "password" "Confirm Password" model.confirmPass RegisterPasswordConf
@@ -191,21 +191,21 @@ update msg model =
             ( model, loginPost model )
 
         RegisterName newUser ->
-            ( { model | newUser = newUser }, Cmd.none )
+            ( { model | name = newUser }, Cmd.none )
 
         RegisterPassword newPass ->
-            ( { model | newPass = newPass }, Cmd.none )
+            ( { model | password = newPass }, Cmd.none )
 
         RegisterPasswordConf confirmPass ->
             ( { model | confirmPass = confirmPass }, Cmd.none )
 
         RegisterButton ->
-            if model.newPass /= model.confirmPass then
+            if model.password /= model.confirmPass then
               ( { model | doesNotMatch = "The passwords entered do not match" }, Cmd.none )
-            else if model.newUser == "" || model.newPass == "" || model.confirmPass == "" then --Remove when add user works
+            else if model.name == "" || model.password == "" || model.password == "" then --Remove when add user works
               ( { model | doesNotMatch = "One or more fields are blank" }, Cmd.none )
             else
-              ( {model | name = model.newUser, password = model.newPass}, registerPost model)
+              ( model, registerPost model)
 
         GotLoginResponse result ->
             case result of
