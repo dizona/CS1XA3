@@ -12,7 +12,9 @@ import Task
 import Time
 import Json.Decode as Decode
 import Maybe
-import List exposing (head)
+import List exposing (head, tail)
+import Random.List exposing (shuffle)
+import Random exposing (generate)
 
 
 
@@ -45,7 +47,8 @@ main =
 
 
 type alias Model =
-    { name : String, password : String, error : String, zone : Time.Zone, time : Time.Posix, tickCounter : Int, start : Bool, pressed : Bool, points : Int, userWord : String, wordList : List String, word : String}
+    { name : String, password : String, error : String, zone : Time.Zone, time : Time.Posix, tickCounter : Int, start : Bool, pressed : Bool
+    , points : Int, userWord : String, wordList : List String, word : String, originalList : List String}
 
 
 type Msg
@@ -58,6 +61,7 @@ type Msg
     | AdjustTimeZone Time.Zone
     | Character Char
     | Control String
+    | ShuffledList (List String)
 
 
 init : () -> ( Model, Cmd Msg )
@@ -72,7 +76,8 @@ init _ =
       , pressed = True
       , points = 0
       , userWord = ""
-      , wordList = ["EGG"]
+      , originalList = ["BABOON", "INFORMATION", "CLIENT"]
+      , wordList = ["BABOON", "INFORMATION", "CLIENT"]
       , word = "EGG"
       }
       , Cmd.none
@@ -110,14 +115,14 @@ view model =
                     ]
                 , div [ class "container" ]
                     [
-                      text (String.fromInt model.points)
+                      text ("Word:     " ++ model.word)
                     ]
                 , div [ class "container" ]
-                    [ text ("Word:" ++ model.word)
+                    [ text ("Points:     " ++ (String.fromInt model.points))
                     ]
                 , div [ class "container"]
                     [
-                     text (String.fromInt model.tickCounter)
+                     text ("Time remaining:    " ++ (String.fromInt model.tickCounter))
                     ]
 
                 ]
@@ -176,9 +181,12 @@ update msg model =
     case msg of
         StartReset ->
           if model.pressed then
-            ({model | start = True, tickCounter = 60, pressed = False, userWord = "", points = 0},Cmd.none)
+            ({model | start = True, tickCounter = 60, pressed = False, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
           else
-            ({model | pressed = not model.pressed, start = False, tickCounter = 60, userWord = "",points = 0}, Cmd.none)
+            ({model | pressed = not model.pressed, start = False, tickCounter = 60, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
+
+        ShuffledList shuffledList ->
+            ({model | wordList = shuffledList}, Cmd.none)
 
 
         NewName name ->
@@ -203,20 +211,31 @@ update msg model =
 
         Tick newTime ->
           if model.tickCounter > 0 then
-            ( { model | time = newTime, tickCounter = model.tickCounter - 1} , Cmd.none )
+            ( { model | time = newTime, tickCounter = model.tickCounter - 1 } , Cmd.none )
           else
-            ( { model | }, Cmd.none)
+            (model, Cmd.none)
 
         AdjustTimeZone newZone ->
             ( { model | zone = newZone }, Cmd.none ) --Command message will be fired to say times up
 
         Character char ->
             if model.start then
-              ({model | userWord = model.userWord ++ String.toUpper (String.fromChar char),
-              points = let
-                          a = model.word
-                          b = model.userWord ++ (String.toUpper (String.fromChar char))
-                       in if (a == b) then model.points + 1 else model.points}, Cmd.none)
+              ({model | userWord = let
+                                      a = model.word
+                                      b = model.userWord ++ (String.toUpper (String.fromChar char))
+                                    in if (a == b) then "" else model.userWord ++ String.toUpper (String.fromChar char)
+              , points = let
+                           a = model.word
+                           b = model.userWord ++ (String.toUpper (String.fromChar char))
+                          in if (a == b) then model.points + 1 else model.points
+              , word = let
+                           a = model.word
+                           b = model.userWord ++ (String.toUpper (String.fromChar char))
+                          in if (a == b) then (getHead model.wordList) else model.word
+              , wordList = let
+                              a = model.word
+                              b = model.userWord ++ (String.toUpper (String.fromChar char))
+                             in if (a == b) then (getTail model.wordList) else model.wordList}, Cmd.none)
 
             else
               (model, Cmd.none)
@@ -234,6 +253,12 @@ getHead xs =
   case head xs of
     Just x -> x
     Nothing -> ""
+
+getTail : List String -> List String
+getTail list =
+  case tail list of
+    Just xs -> xs
+    Nothing -> [""]
 
 
 
