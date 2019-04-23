@@ -1,5 +1,6 @@
 import Browser
 import Browser.Navigation exposing (load)
+import Browser.Events
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
@@ -9,6 +10,9 @@ import Json.Encode as JEncode
 import String
 import Task
 import Time
+import Json.Decode as Decode
+import Maybe
+import List exposing (head)
 
 
 
@@ -41,7 +45,7 @@ main =
 
 
 type alias Model =
-    { name : String, password : String, error : String, zone : Time.Zone, time : Time.Posix, tickCounter : Int, start : Bool, pressed : Bool, points : Int}
+    { name : String, password : String, error : String, zone : Time.Zone, time : Time.Posix, tickCounter : Int, start : Bool, pressed : Bool, points : Int, userWord : String, wordList : List String, word : String}
 
 
 type Msg
@@ -52,6 +56,8 @@ type Msg
     | StartReset
     | Tick Time.Posix
     | AdjustTimeZone Time.Zone
+    | Character Char
+    | Control String
 
 
 init : () -> ( Model, Cmd Msg )
@@ -65,6 +71,9 @@ init _ =
       , start  = False
       , pressed = True
       , points = 0
+      , userWord = ""
+      , wordList = ["EGG"]
+      , word = "EGG"
       }
       , Cmd.none
     )
@@ -88,10 +97,7 @@ view model =
                 [ span [ class "contact100-form-title" ]
                     [ text "Type Racer" ]
                 , div [ class "wrap-input100 validate-input" ]
-                    [ input [ class "input100", name "word", placeholder "", type_ "text" ]
-                        []
-                    , span [ class "focus-input100" ]
-                        []
+                    [ text model.userWord
                     ]
                 , div [ class "container-contact100-form-btn" ]
                     [ button [ class "contact100-form-btn" , Events.onClick StartReset]
@@ -103,7 +109,11 @@ view model =
                         ]
                     ]
                 , div [ class "container" ]
-                    [ text "Word:"
+                    [
+                      text (String.fromInt model.points)
+                    ]
+                , div [ class "container" ]
+                    [ text ("Word:" ++ model.word)
                     ]
                 , div [ class "container"]
                     [
@@ -166,9 +176,9 @@ update msg model =
     case msg of
         StartReset ->
           if model.pressed then
-            ({model | start = True, tickCounter = 60, pressed = False},Cmd.none)
+            ({model | start = True, tickCounter = 60, pressed = False, userWord = "", points = 0},Cmd.none)
           else
-            ({model | pressed = not model.pressed, start = False, tickCounter = 60}, Cmd.none)
+            ({model | pressed = not model.pressed, start = False, tickCounter = 60, userWord = "",points = 0}, Cmd.none)
 
 
         NewName name ->
@@ -193,25 +203,65 @@ update msg model =
 
         Tick newTime ->
           if model.tickCounter > 0 then
-            ( { model | time = newTime, tickCounter = model.tickCounter - 1 } , Cmd.none )
+            ( { model | time = newTime, tickCounter = model.tickCounter - 1} , Cmd.none )
           else
-            (model, Cmd.none)
+            ( { model | }, Cmd.none)
 
         AdjustTimeZone newZone ->
             ( { model | zone = newZone }, Cmd.none ) --Command message will be fired to say times up
 
+        Character char ->
+            if model.start then
+              ({model | userWord = model.userWord ++ String.toUpper (String.fromChar char),
+              points = let
+                          a = model.word
+                          b = model.userWord ++ (String.toUpper (String.fromChar char))
+                       in if (a == b) then model.points + 1 else model.points}, Cmd.none)
 
+            else
+              (model, Cmd.none)
+
+        Control string ->
+            if string == "Backspace" then
+              ({model | userWord = String.slice 0 ((String.length model.userWord)-1) model.userWord},Cmd.none) -- Remove last element of the list
+            else
+              (model,Cmd.none)
+
+
+
+getHead : List String -> String
+getHead xs =
+  case head xs of
+    Just x -> x
+    Nothing -> ""
 
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
+  Sub.batch
+  [
   if model.start then
     Time.every 1000 Tick
   else
     Sub.none
+  ,  Browser.Events.onKeyDown keyDecoder
+  ]
 
+-- Decodes the key code from the keyboard
+keyDecoder : Decode.Decoder Msg
+keyDecoder =
+  Decode.map toKey (Decode.field "key" Decode.string)
 
+-- Takes the char of the key which represents what was pressed on the keyboard
+toKey : String -> Msg
+toKey string =
+    case String.uncons string of
+        Just ( char, "" ) ->
+            Character char
+
+        _ ->
+            Control string
 -- put error message in model.error_response (rendered in view)
 
 
