@@ -71,13 +71,16 @@ init _ =
       , error = ""
       , zone = Time.utc
       , time = (Time.millisToPosix 0)
-      , tickCounter = 60
+      , tickCounter = 30
       , start  = False
       , pressed = True
       , points = 0
       , userWord = ""
-      , originalList = ["BABOON", "INFORMATION", "CLIENT"]
-      , wordList = ["BABOON", "INFORMATION", "CLIENT"]
+      , originalList = ["BABOON", "INFORMATION", "CLIENT","PROBLEM","EDUCATION","HYPOTHESIS","GHOST","MACHINERY","ROCKET","SALVATION","CONTROL","CRISIS","JACKET","DENIAL","DECIMAL","CRITICISM","GRADUAL","CONSIDERATION","VICTORY","SUPPLY"
+                        ,"GLORY","HOROSCOPE","GLACIER","PREDICT","BASKETBALL","FOOTBALL","PROFILE","HIGH","GRAVEL","CATCH","CANDIDATE","PILOT","GENERAL","SHOCK","SOLUTION","WORTH","JUSTIFY","MYSTERY","RANGE","EXPRESSION","PARDON","ADMISSION"
+                        ,"MORALE","CAREER","AMBITION","APPOINT","ASSIGNMENT","LEAF","MEDIUM","NORTH","PHOTOGRAPHY","SECURITY","LEARN","PREACH","PROSECUTION","ORBIT","COMMENT","CULTURE","EXCEED","BRACKET","TWILIGHT","CREDIBILITY","WEIRD"
+                        ,"ACCOMMODATE","CEMETERY","CONSCIENCE","RHYTHM","HANDKERCHIEF","SMILE"]
+      , wordList = [""]
       , word = "EGG"
       }
       , Cmd.none
@@ -100,9 +103,14 @@ view model =
         [ div [ class "wrap-contact100" ]
             [ div []
                 [ span [ class "contact100-form-title" ]
-                    [ text "Type Racer" ]
+                    [ text "Speed Typer" ]
+                , div [ class "container" ]
+                    [
+                      text "What you type will appear below:"
+                    ]
                 , div [ class "wrap-input100 validate-input" ]
-                    [ text model.userWord
+                    [
+                      text model.userWord
                     ]
                 , div [ class "container-contact100-form-btn" ]
                     [ button [ class "contact100-form-btn" , Events.onClick StartReset]
@@ -165,6 +173,12 @@ loginPost model =
         , expect = Http.expectString GotLoginResponse
         }
 
+getUserInfo : Cmd Msg
+getUserInfo =
+  Http.get
+      { url = rootUrl ++ "userauthapp/getuserinfo/"
+      , expect = Http.expectString GotLoginResponse
+      }
 
 
 {- -------------------------------------------------------------------------------------------
@@ -181,9 +195,9 @@ update msg model =
     case msg of
         StartReset ->
           if model.pressed then
-            ({model | start = True, tickCounter = 60, pressed = False, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
+            ({model | start = True, tickCounter = 30, pressed = False, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
           else
-            ({model | pressed = not model.pressed, start = False, tickCounter = 60, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
+            ({model | pressed = not model.pressed, start = False, tickCounter = 30, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
 
         ShuffledList shuffledList ->
             ({model | wordList = shuffledList}, Cmd.none)
@@ -203,6 +217,13 @@ update msg model =
                 Ok "LoginFailed" ->
                     ( { model | error = "failed to login" }, Cmd.none )
 
+
+                Ok "Authenticated" ->
+                    (model, Cmd.none)
+
+                Ok "NotAuthenticated" ->
+                    (model,load ("https://google.ca"))
+
                 Ok _ ->
                     ( model, load (rootUrl ++ "static/userpage.html") )
 
@@ -213,7 +234,7 @@ update msg model =
           if model.tickCounter > 0 then
             ( { model | time = newTime, tickCounter = model.tickCounter - 1 } , Cmd.none )
           else
-            (model, Cmd.none)
+            ({model | start = False}, Cmd.none)
 
         AdjustTimeZone newZone ->
             ( { model | zone = newZone }, Cmd.none ) --Command message will be fired to say times up
