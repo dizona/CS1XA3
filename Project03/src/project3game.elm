@@ -23,7 +23,7 @@ import Random exposing (generate)
 
 
 rootUrl =
-    "http://localhost:8000/e/macid/"
+    "http://localhost:8000/e/dizona/"
 
 
 
@@ -55,7 +55,6 @@ type Msg
     = NewName String -- Name text field changed
     | NewPassword String -- Password text field changed
     | GotLoginResponse (Result Http.Error String) -- Http Post Response Received
-    | LoginButton -- Login Button Pressed
     | StartReset
     | Tick Time.Posix
     | AdjustTimeZone Time.Zone
@@ -63,6 +62,7 @@ type Msg
     | Control String
     | ShuffledList (List String)
     | GotUserName (Result Http.Error String)
+    | Logout
 
 
 init : () -> ( Model, Cmd Msg )
@@ -83,6 +83,7 @@ init _ =
                         ,"ACCOMMODATE","CEMETERY","CONSCIENCE","RHYTHM","HANDKERCHIEF","SMILE"]
       , wordList = [""]
       , word = "EGG"
+      , uname = ""
       }
       , getUserInfo
     )
@@ -101,7 +102,7 @@ view model =
         []
     , div [class "container"]
     [
-      text ("LOGGED IN AS " ++ model.uname)
+      text ("LOGGED IN AS: " ++ model.uname ++ model.error)
     ]
     , div [ class "container-contact100" ]
         [ div [ class "wrap-contact100" ]
@@ -145,16 +146,20 @@ view model =
                           ]
                         ]
                     ]
+                ,div [class "container"]
+                [ button [ class "contact100-form-btn" , Events.onClick Logout]
+                    [ span []
+                        [ i [ attribute "aria-hidden" "true", class "fa fa-paper-plane-o m-r-6" ]
+                            []
+                        , text "Logout"
+                      ]
+                    ]
+                ]
 
                 ]
             ]
         ]
     ]
-
-
-viewInput : String -> String -> String -> (String -> Msg) -> Html Msg
-viewInput t p v toMsg =
-    input [ type_ t, placeholder p, Events.onInput toMsg ] []
 
 
 
@@ -177,27 +182,25 @@ passwordEncoder model =
           )
         ]
 
---
--- loginPost : Model -> Cmd Msg
--- loginPost model =
---     Http.post
---         { url = rootUrl ++ "userauthapp/loginuser/"
---         , body = Http.jsonBody <| passwordEncoder model
---         , expect = Http.expectString GotLoginResponse
---         }
-
 getUserInfo : Cmd Msg
 getUserInfo =
   Http.get
-      { url = rootUrl ++ "userauthapp/getuserinfo/"
+      { url = rootUrl ++ "loginapp/getuserinfo/"
       , expect = Http.expectString GotLoginResponse
       }
 
 getUserName : Cmd Msg
 getUserName =
   Http.get
-      { url = rootUrl ++ "userauthapp/getusername/"
+      { url = rootUrl ++ "loginapp/getusername/"
       , expect = Http.expectString GotUserName
+      }
+
+logoutUser : Cmd Msg
+logoutUser =
+  Http.get
+      { url = rootUrl ++ "loginapp/logoutuser/"
+      , expect = Http.expectString GotLoginResponse
       }
 
 
@@ -229,16 +232,13 @@ update msg model =
         NewPassword password ->
             ( { model | password = password }, Cmd.none )
 
-        LoginButton ->
-            ( model, loginPost model )
-
         GotUserName result ->
           case result of
               Ok username ->
                   ({ model | uname = username}, Cmd.none )
 
               Err error ->
-                  ( {model | uname = "ERROR"}, Cmd.none )
+                  ( handleError model error, Cmd.none )
 
         GotLoginResponse result ->
             case result of
@@ -246,10 +246,13 @@ update msg model =
                     (model, getUserName)
 
                 Ok "NotAuthenticated" ->
-                    (model,load ("https://google.ca"))
+                    ({ model | error = "Not Authenticated"},load("login.html"))
+
+                Ok "Logout" ->
+                    ({ model | error = "Failed to logout"}, load("login.html"))
 
                 Ok _ ->
-                    ( model, load (rootUrl ++ "static/userpage.html") )
+                    ( model, getUserName )
 
                 Err error ->
                     ( handleError model error, Cmd.none )
@@ -290,6 +293,9 @@ update msg model =
               ({model | userWord = String.slice 0 ((String.length model.userWord)-1) model.userWord},Cmd.none) -- Remove last element of the list
             else
               (model,Cmd.none)
+
+        Logout ->
+          (model, logoutUser)
 
 
 
