@@ -48,7 +48,7 @@ main =
 
 type alias Model =
     { name : String, password : String, error : String, zone : Time.Zone, time : Time.Posix, tickCounter : Int, start : Bool, pressed : Bool
-    , points : Int, userWord : String, wordList : List String, word : String, originalList : List String}
+    , points : Int, userWord : String, wordList : List String, word : String, originalList : List String, uname : String}
 
 
 type Msg
@@ -62,6 +62,7 @@ type Msg
     | Character Char
     | Control String
     | ShuffledList (List String)
+    | GotUserName (Result Http.Error String)
 
 
 init : () -> ( Model, Cmd Msg )
@@ -83,7 +84,7 @@ init _ =
       , wordList = [""]
       , word = "EGG"
       }
-      , Cmd.none
+      , getUserInfo
     )
 
 
@@ -93,12 +94,15 @@ init _ =
    --------------------------------------------------------------------------------------------
 -}
 
-
 view : Model -> Html Msg
 view model =
     div []
     [ node "link" [ href "css2/main.css", rel "stylesheet", type_ "text/css" ]
         []
+    , div [class "container"]
+    [
+      text ("LOGGED IN AS " ++ model.uname)
+    ]
     , div [ class "container-contact100" ]
         [ div [ class "wrap-contact100" ]
             [ div []
@@ -132,6 +136,15 @@ view model =
                     [
                      text ("Time remaining:    " ++ (String.fromInt model.tickCounter))
                     ]
+                , div [ class "container-contact100-form-btn" ]
+                    [ button [ class "contact100-form-btn"] --Add an Events.onClick Msg
+                        [ span []
+                            [ i [ attribute "aria-hidden" "true", class "fa fa-paper-plane-o m-r-6" ]
+                                []
+                            , text "POST SCORE"
+                          ]
+                        ]
+                    ]
 
                 ]
             ]
@@ -164,20 +177,27 @@ passwordEncoder model =
           )
         ]
 
-
-loginPost : Model -> Cmd Msg
-loginPost model =
-    Http.post
-        { url = rootUrl ++ "userauthapp/loginuser/"
-        , body = Http.jsonBody <| passwordEncoder model
-        , expect = Http.expectString GotLoginResponse
-        }
+--
+-- loginPost : Model -> Cmd Msg
+-- loginPost model =
+--     Http.post
+--         { url = rootUrl ++ "userauthapp/loginuser/"
+--         , body = Http.jsonBody <| passwordEncoder model
+--         , expect = Http.expectString GotLoginResponse
+--         }
 
 getUserInfo : Cmd Msg
 getUserInfo =
   Http.get
       { url = rootUrl ++ "userauthapp/getuserinfo/"
       , expect = Http.expectString GotLoginResponse
+      }
+
+getUserName : Cmd Msg
+getUserName =
+  Http.get
+      { url = rootUrl ++ "userauthapp/getusername/"
+      , expect = Http.expectString GotUserName
       }
 
 
@@ -212,14 +232,18 @@ update msg model =
         LoginButton ->
             ( model, loginPost model )
 
+        GotUserName result ->
+          case result of
+              Ok username ->
+                  ({ model | uname = username}, Cmd.none )
+
+              Err error ->
+                  ( {model | uname = "ERROR"}, Cmd.none )
+
         GotLoginResponse result ->
             case result of
-                Ok "LoginFailed" ->
-                    ( { model | error = "failed to login" }, Cmd.none )
-
-
                 Ok "Authenticated" ->
-                    (model, Cmd.none)
+                    (model, getUserName)
 
                 Ok "NotAuthenticated" ->
                     (model,load ("https://google.ca"))
