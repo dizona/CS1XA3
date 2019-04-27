@@ -5,12 +5,11 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events as Events
 import Http
-import Json.Decode as JDecode
+import Json.Decode as Decode
 import Json.Encode as JEncode
 import String
 import Task
 import Time
-import Json.Decode as Decode
 import Maybe
 import List exposing (head, tail)
 import Random.List exposing (shuffle)
@@ -48,7 +47,7 @@ main =
 
 type alias Model =
     { name : String, password : String, error : String, zone : Time.Zone, time : Time.Posix, tickCounter : Int, start : Bool, pressed : Bool
-    , points : Int, userWord : String, wordList : List String, word : String, originalList : List String, uname : String}
+    , points : Int, userWord : String, wordList : List String, word : String, originalList : List String, uname : String, save : String, yourScore : String}
 
 
 type Msg
@@ -62,7 +61,11 @@ type Msg
     | Control String
     | ShuffledList (List String)
     | GotUserName (Result Http.Error String)
+    | GotScore (Result Http.Error String)
     | Logout
+    | PostScore
+    | SaveResponse (Result Http.Error String)
+    | Leaderboard (Result Http.Error String)
 
 
 init : () -> ( Model, Cmd Msg )
@@ -84,6 +87,8 @@ init _ =
       , wordList = [""]
       , word = "EGG"
       , uname = ""
+      , save = ""
+      , yourScore = ""
       }
       , getUserInfo
     )
@@ -102,7 +107,7 @@ view model =
         []
     , div [class "container"]
     [
-      text ("LOGGED IN AS: " ++ model.uname ++ model.error)
+      text ("LOGGED IN AS: " ++ model.uname)
     ]
     , div [ class "container-contact100" ]
         [ div [ class "wrap-contact100" ]
@@ -138,7 +143,7 @@ view model =
                      text ("Time remaining:    " ++ (String.fromInt model.tickCounter))
                     ]
                 , div [ class "container-contact100-form-btn" ]
-                    [ button [ class "contact100-form-btn"] --Add an Events.onClick Msg
+                    [ button [ class "contact100-form-btn", Events.onClick PostScore] --Add an Events.onClick Msg
                         [ span []
                             [ i [ attribute "aria-hidden" "true", class "fa fa-paper-plane-o m-r-6" ]
                                 []
@@ -146,6 +151,14 @@ view model =
                           ]
                         ]
                     ]
+                , div [ class "container" ]
+                  [
+                    text model.save
+                  ]
+                , div [ class "container" ]
+                [
+                  text ("Your Highscore: " ++ model.yourScore)
+                ]
                 ,div [class "container"]
                 [ button [ class "contact100-form-btn" , Events.onClick Logout]
                     [ span []
@@ -196,12 +209,35 @@ getUserName =
       , expect = Http.expectString GotUserName
       }
 
+getHighscore : Cmd Msg
+getHighscore =
+  Http.get
+     { url = rootUrl ++ "loginapp/getscore/"
+     , expect = Http.expectString GotScore
+     }
+
 logoutUser : Cmd Msg
 logoutUser =
   Http.get
       { url = rootUrl ++ "loginapp/logoutuser/"
       , expect = Http.expectString GotLoginResponse
       }
+
+postScore : Model -> Cmd Msg
+postScore model =
+  Http.post
+      { url = rootUrl ++ "loginapp/postscore/" --Remeber this for the urls
+      , body = Http.jsonBody <| scoreEncoder model --Need encoder
+      , expect = Http.expectString SaveResponse --GotLoginResponse will leadinto something
+      }
+
+scoreEncoder : Model ->JEncode.Value
+scoreEncoder model =
+  JEncode.object
+    [ ("score"
+      , JEncode.int model.points
+      )
+    ]
 
 
 {- -------------------------------------------------------------------------------------------
@@ -218,9 +254,9 @@ update msg model =
     case msg of
         StartReset ->
           if model.pressed then
-            ({model | start = True, tickCounter = 30, pressed = False, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
+            ({model | start = True, tickCounter = 30, pressed = False, userWord = "",points = 0, wordList = model.originalList, word = "EGG",save=""}, generate ShuffledList (shuffle model.originalList))
           else
-            ({model | pressed = not model.pressed, start = False, tickCounter = 30, userWord = "",points = 0, wordList = model.originalList, word = "EGG"}, generate ShuffledList (shuffle model.originalList))
+            ({model | pressed = not model.pressed, start = False, tickCounter = 30, userWord = "",points = 0, wordList = model.originalList, word = "EGG",save =""}, generate ShuffledList (shuffle model.originalList))
 
         ShuffledList shuffledList ->
             ({model | wordList = shuffledList}, Cmd.none)
@@ -235,10 +271,17 @@ update msg model =
         GotUserName result ->
           case result of
               Ok username ->
-                  ({ model | uname = username}, Cmd.none )
+                  ({ model | uname = username}, getHighscore )
 
               Err error ->
                   ( handleError model error, Cmd.none )
+
+        GotScore result ->
+          case result of
+            Ok score ->
+                  ({model | yourScore = score}, Cmd.none)
+            Err error ->
+                  ({model | yourScore = "Could not retrieve"}, Cmd.none)
 
         GotLoginResponse result ->
             case result of
@@ -249,13 +292,44 @@ update msg model =
                     ({ model | error = "Not Authenticated"},load("login.html"))
 
                 Ok "Logout" ->
-                    ({ model | error = "Failed to logout"}, load("login.html"))
+                    ({ model | error = "Logout"}, load("login.html"))
+
+                Ok "ScoreSaved" ->
+                    ({ model | save = "Score Saved"}, Cmd.none)
+
+                Ok "NotSaved" ->
+                    ({model | save = "Score not saved. You have a better score!"}, Cmd.none)
 
                 Ok _ ->
                     ( model, getUserName )
 
                 Err error ->
                     ( handleError model error, Cmd.none )
+
+        SaveResponse result ->
+          case result of
+            Ok "ScoreSaved" ->
+                ({ model | save = "Score Saved"}, Cmd.none)
+
+            Ok "NotSaved" ->
+                ({model | save = "Score not saved. You have a better score!"}, Cmd.none)
+
+            Ok _ ->
+                ( model, getUserName )
+
+            Err error ->
+                ( handleError model error, Cmd.none )
+
+        Leaderboard result ->
+          case result of
+              Ok "ShowLeaderboard" ->
+                  (model, Cmd.none)
+
+              Ok _ ->
+                  ( model, getUserName ) --Change for leaderboard
+
+              Err error ->
+                  ( handleError model error, Cmd.none )
 
         Tick newTime ->
           if model.tickCounter > 0 then
@@ -297,6 +371,8 @@ update msg model =
         Logout ->
           (model, logoutUser)
 
+        PostScore ->
+          (model, postScore model)
 
 
 getHead : List String -> String
