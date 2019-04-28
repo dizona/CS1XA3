@@ -1,5 +1,5 @@
 # README Project3: Speed Typer
-This is project 3 for the Computer Science 1XA3 course. It features a game where the user must type as many words as they can in 30 minutes.
+This is project 3 for the Computer Science 1XA3 course. It features a game where the user must type as many words as they can in 30 seconds.
 ### How to run the project
 - Clone the repository at https://github.com/dizona/CS1XA3.git in any directory you want
 -  Make sure you have python installed and create a virtual environment with the command 
@@ -29,7 +29,7 @@ This is project 3 for the Computer Science 1XA3 course. It features a game where
 ##### Django:
 - loginapp is used for user authentication and requests. This includes user authentication and retrieving and sending usernames and scores to the database
 - Utilizes "OneToOne" relations for associating points with the user
-- Utilizes Django's built in "User" model and functions such as login, logout, authenticate etc.
+- Utilizes Django's built in "User" and the "UserInfo" model and functions such as login, logout, authenticate etc.
 ### Bootstrap Template Credit: 
 ##### Login form template retrieved from:
 ```sh
