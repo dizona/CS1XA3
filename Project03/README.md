@@ -29,6 +29,7 @@ This is project 3 for the Computer Science 1XA3 course. It features a game where
 ##### Django:
 - loginapp is used for user authentication and requests. This includes user authentication and retrieving and sending usernames and scores to the database
 - Utilizes "OneToOne" relations for associating points with the user
+- Utilizes Django's built in "User" model and functions such as login, logout, authenticate etc.
 ### Bootstrap Template Credit: 
 ##### Login form template retrieved from:
 ```sh
