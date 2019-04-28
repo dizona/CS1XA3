@@ -3,7 +3,7 @@ This is project 3 for the Computer Science 1XA3 course. It features a game where
 ### How to run the project
 - Clone the repository at https://github.com/dizona/CS1XA3.git in any directory you want
 -  Make sure you have python installed and create a virtual environment with the command 
-"python3 -m venv python_env"
+"python3 -m venv python_env" or use the one already in the folder.
 - Now go into the virtual environment with "cd python_env" and once you are in, run
 "source bin/activate"
 - Navigate to CS1XA3/Project03 and do the command "pip install -r requirements.txt"
