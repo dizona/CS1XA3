@@ -16,7 +16,7 @@ import String
 
 
 rootUrl =
-    "http://localhost:8000/e/dizona/"
+    "http://mac1xa3.ca/e/dizona/"
 
 
 
@@ -116,7 +116,7 @@ view model =
                             ]
                         , div [ class "group" ]
                             [ button [ Events.onClick RegisterButton ] [ text "Register and Login" ]
-                            , text model.doesNotMatch
+                            , text (model.doesNotMatch ++ model.error)
                             ]
                         ]
                     ]
@@ -202,7 +202,7 @@ update msg model =
         RegisterButton ->
             if model.password /= model.confirmPass then
               ( { model | doesNotMatch = "The passwords entered do not match" }, Cmd.none )
-            else if model.name == "" || model.password == "" || model.password == "" then --Remove when add user works
+            else if model.name == "" || model.password == "" || model.confirmPass == "" then --Remove when add user works
               ( { model | doesNotMatch = "One or more fields are blank" }, Cmd.none )
             else
               ( model, registerPost model)
@@ -212,8 +212,17 @@ update msg model =
                 Ok "LoginFailed" ->
                     ( { model | error = "failed to login" }, Cmd.none )
 
+                Ok "Exists" ->
+                    ({model | error = "User already exists"}, Cmd.none )
+
+                Ok "LoggedOut" ->
+                    (model, load("project3.html"))
+
+                Ok "LoggedIn" ->
+                    (model, load("project3game.html"))
+
                 Ok _ ->
-                    ( model, load ("https://google.ca") )
+                    ( model, load ("project3game.html") )
 
                 Err error ->
                     ( handleError model error, Cmd.none )

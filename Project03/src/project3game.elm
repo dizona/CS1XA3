@@ -22,7 +22,7 @@ import Random exposing (generate)
 
 
 rootUrl =
-    "http://localhost:8000/e/dizona/"
+    "http://mac1xa3.ca/e/dizona/"
 
 
 
@@ -54,18 +54,17 @@ type Msg
     = NewName String -- Name text field changed
     | NewPassword String -- Password text field changed
     | GotLoginResponse (Result Http.Error String) -- Http Post Response Received
-    | StartReset
-    | Tick Time.Posix
-    | AdjustTimeZone Time.Zone
-    | Character Char
-    | Control String
-    | ShuffledList (List String)
-    | GotUserName (Result Http.Error String)
-    | GotScore (Result Http.Error String)
-    | Logout
-    | PostScore
-    | SaveResponse (Result Http.Error String)
-    | Leaderboard (Result Http.Error String)
+    | StartReset --Start/Reset button
+    | Tick Time.Posix --Tick used from time
+    | AdjustTimeZone Time.Zone --Adjusts the time zone
+    | Character Char --For when a character on the keyboard is pushed
+    | Control String --When anything except and letter or number is pushed
+    | ShuffledList (List String) --Shuffles the list
+    | GotUserName (Result Http.Error String) --For getting the username
+    | GotScore (Result Http.Error String) --For getting the score of the user
+    | Logout --Logout button
+    | PostScore --For the post score button
+    | SaveResponse (Result Http.Error String) --Checks if the score posted was saved
 
 
 init : () -> ( Model, Cmd Msg )
@@ -143,7 +142,7 @@ view model =
                      text ("Time remaining:    " ++ (String.fromInt model.tickCounter))
                     ]
                 , div [ class "container-contact100-form-btn" ]
-                    [ button [ class "contact100-form-btn", Events.onClick PostScore] --Add an Events.onClick Msg
+                    [ button [ class "contact100-form-btn", Events.onClick PostScore]
                         [ span []
                             [ i [ attribute "aria-hidden" "true", class "fa fa-paper-plane-o m-r-6" ]
                                 []
@@ -158,6 +157,10 @@ view model =
                 , div [ class "container" ]
                 [
                   text ("Your Highscore: " ++ model.yourScore)
+                ]
+                ,div [ class "container"]
+                [
+                  text " "
                 ]
                 ,div [class "container"]
                 [ button [ class "contact100-form-btn" , Events.onClick Logout]
@@ -184,17 +187,18 @@ view model =
 -}
 
 
-passwordEncoder : Model -> JEncode.Value
-passwordEncoder model =
-    JEncode.object
-        [ ( "username"
-          , JEncode.string model.name
-          )
-        , ( "password"
-          , JEncode.string model.password
-          )
-        ]
+-- passwordEncoder : Model -> JEncode.Value
+-- passwordEncoder model =
+--     JEncode.object
+--         [ ( "username"
+--           , JEncode.string model.name
+--           )
+--         , ( "password"
+--           , JEncode.string model.password
+--           )
+--         ]
 
+--Checks if the user is authenticated before opening up the webpage
 getUserInfo : Cmd Msg
 getUserInfo =
   Http.get
@@ -202,6 +206,7 @@ getUserInfo =
       , expect = Http.expectString GotLoginResponse
       }
 
+--Retrieves the username of the user logged in
 getUserName : Cmd Msg
 getUserName =
   Http.get
@@ -209,6 +214,7 @@ getUserName =
       , expect = Http.expectString GotUserName
       }
 
+--Retrieves the highest score the user got
 getHighscore : Cmd Msg
 getHighscore =
   Http.get
@@ -216,6 +222,7 @@ getHighscore =
      , expect = Http.expectString GotScore
      }
 
+--Logs the user out of the system
 logoutUser : Cmd Msg
 logoutUser =
   Http.get
@@ -223,14 +230,16 @@ logoutUser =
       , expect = Http.expectString GotLoginResponse
       }
 
+--Posts the score the user gets and saves it into the database
 postScore : Model -> Cmd Msg
 postScore model =
   Http.post
-      { url = rootUrl ++ "loginapp/postscore/" --Remeber this for the urls
-      , body = Http.jsonBody <| scoreEncoder model --Need encoder
-      , expect = Http.expectString SaveResponse --GotLoginResponse will leadinto something
+      { url = rootUrl ++ "loginapp/postscore/"
+      , body = Http.jsonBody <| scoreEncoder model
+      , expect = Http.expectString SaveResponse
       }
 
+--Encodes the score when it sends it to the database
 scoreEncoder : Model ->JEncode.Value
 scoreEncoder model =
   JEncode.object
@@ -239,12 +248,16 @@ scoreEncoder model =
       )
     ]
 
+-- getLeaderboard : Cmd Msg
+-- getLeaderboard =
+--   Http.get
+--       { url = rootUrl ++ "loginapp/leaderboard/"
+--       , expect = Http.expectString ShowLeaderboard
+--       }
+
 
 {- -------------------------------------------------------------------------------------------
    - Update
-   -   Sends a JSON Post with currently entered username and password upon button press
-   -   Server send an Redirect Response that will automatically redirect to UserPage.html
-   -   upon success
    --------------------------------------------------------------------------------------------
 -}
 
@@ -252,15 +265,16 @@ scoreEncoder model =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
+        --The start/reset button that will reset everything and start/restart the game
         StartReset ->
           if model.pressed then
             ({model | start = True, tickCounter = 30, pressed = False, userWord = "",points = 0, wordList = model.originalList, word = "EGG",save=""}, generate ShuffledList (shuffle model.originalList))
           else
             ({model | pressed = not model.pressed, start = False, tickCounter = 30, userWord = "",points = 0, wordList = model.originalList, word = "EGG",save =""}, generate ShuffledList (shuffle model.originalList))
 
+        --Shuffles the list of words
         ShuffledList shuffledList ->
             ({model | wordList = shuffledList}, Cmd.none)
-
 
         NewName name ->
             ( { model | name = name }, Cmd.none )
@@ -268,6 +282,7 @@ update msg model =
         NewPassword password ->
             ( { model | password = password }, Cmd.none )
 
+        --Assigns uname to the username of the user and calls on the getHighscore function
         GotUserName result ->
           case result of
               Ok username ->
@@ -276,6 +291,7 @@ update msg model =
               Err error ->
                   ( handleError model error, Cmd.none )
 
+        --Called form the getHighscore function and assigns the highest score of the user to yourscore
         GotScore result ->
           case result of
             Ok score ->
@@ -283,16 +299,17 @@ update msg model =
             Err error ->
                   ({model | yourScore = "Could not retrieve"}, Cmd.none)
 
+        --Checks if the user is authenticated, when they logout, and if their score is saved
         GotLoginResponse result ->
             case result of
                 Ok "Authenticated" ->
                     (model, getUserName)
 
                 Ok "NotAuthenticated" ->
-                    ({ model | error = "Not Authenticated"},load("login.html"))
+                    ({ model | error = "Not Authenticated"},load("project3.html"))
 
                 Ok "Logout" ->
-                    ({ model | error = "Logout"}, load("login.html"))
+                    ({ model | error = "Logout"}, load("project3.html"))
 
                 Ok "ScoreSaved" ->
                     ({ model | save = "Score Saved"}, Cmd.none)
@@ -306,6 +323,7 @@ update msg model =
                 Err error ->
                     ( handleError model error, Cmd.none )
 
+        --Msg that fires informing the user that if their score saved or not
         SaveResponse result ->
           case result of
             Ok "ScoreSaved" ->
@@ -320,26 +338,18 @@ update msg model =
             Err error ->
                 ( handleError model error, Cmd.none )
 
-        Leaderboard result ->
-          case result of
-              Ok "ShowLeaderboard" ->
-                  (model, Cmd.none)
-
-              Ok _ ->
-                  ( model, getUserName ) --Change for leaderboard
-
-              Err error ->
-                  ( handleError model error, Cmd.none )
-
+        --Triggers with every Tick and will decrements the tickCounter
         Tick newTime ->
           if model.tickCounter > 0 then
             ( { model | time = newTime, tickCounter = model.tickCounter - 1 } , Cmd.none )
           else
             ({model | start = False}, Cmd.none)
 
+        --Assigns zone the timezone
         AdjustTimeZone newZone ->
             ( { model | zone = newZone }, Cmd.none ) --Command message will be fired to say times up
 
+        --Triggers when a letter is pressed. Tracks the keys and assigns it to userWord. It walso checks if the words match and if they do, points is incremented and a new word is chosen
         Character char ->
             if model.start then
               ({model | userWord = let
@@ -362,25 +372,29 @@ update msg model =
             else
               (model, Cmd.none)
 
+        --Checks when anything other than a letter is pressed. When "Backspace" is pressed, the laster letter in userWord is deleted
         Control string ->
             if string == "Backspace" then
               ({model | userWord = String.slice 0 ((String.length model.userWord)-1) model.userWord},Cmd.none) -- Remove last element of the list
             else
               (model,Cmd.none)
 
+        --Triggers when the user clicks the logout button
         Logout ->
           (model, logoutUser)
 
+        --Triggers when the post score button is pressed
         PostScore ->
           (model, postScore model)
 
-
+--Retrieves the head of the list
 getHead : List String -> String
 getHead xs =
   case head xs of
     Just x -> x
     Nothing -> ""
 
+--Retrieves the tail of the list
 getTail : List String -> List String
 getTail list =
   case tail list of
@@ -388,7 +402,7 @@ getTail list =
     Nothing -> [""]
 
 
-
+--Checks for time and keyboard events
 subscriptions : Model -> Sub Msg
 subscriptions model =
   Sub.batch
@@ -414,9 +428,9 @@ toKey string =
 
         _ ->
             Control string
--- put error message in model.error_response (rendered in view)
 
 
+--Handles error messages and associates it with the correct response
 handleError : Model -> Http.Error -> Model
 handleError model error =
     case error of

@@ -2,10 +2,10 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class UserInfoManager(models.Manager):
-    def create_user_info(self, username, password, info):
+    def create_user_info(self, username, password):
         user = User.objects.create_user(username=username,
                                         password=password)
-        userinfo = self.create(user=user,info="info")
+        userinfo = self.create(user=user)
 
         return userinfo
 
@@ -14,6 +14,6 @@ class UserInfo(models.Model):
                                 on_delete=models.CASCADE,
                                 primary_key=True)
 
-    info = models.CharField(max_length=30)
+    points = models.IntegerField(default=0)
 
     objects = UserInfoManager()
