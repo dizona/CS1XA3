@@ -27,7 +27,7 @@ This is project 3 for the Computer Science 1XA3 course. It features a game where
 - Utilizes "Random" and "Random.List" import modules to shuffle a list to make it random
 - Uses "Time" import to count the seconds the user has remaining in the game
 ##### Django:
-- loginapp is used for user authentication and requests. This includes user authentication and retrieving and sending usernames and scores to the database
+- loginapp is used for user authentication and requests. This includes user authentication and retrieving and sending usernames and scores to the database through the use of JSON get and post
 - Utilizes "OneToOne" relations for associating points with the user
 - Utilizes Django's built in "User" and the "UserInfo" model and functions such as login, logout, authenticate etc.
 ### Bootstrap Template Credit: 
